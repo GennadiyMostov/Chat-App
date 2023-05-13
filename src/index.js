@@ -16,19 +16,24 @@ app.get('', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('New Connection');
+  socket.emit('connect/disconnect', 'Welcome To The Chat');
+
+  socket.on('disconnect', () => {
+    io.emit('connect/disconnect', 'A User Has Left The Chat');
+  });
+
+  socket.broadcast.emit('connect/disconnect', 'A New User has Joined');
 
   socket.on('sendMessage', (msg) => {
-    console.log(msg);
     io.emit('sendMessage', msg);
   });
 
-  // socket.emit('countUpdated', count);
-  // socket.on('increment', () => {
-  //   count++;
-  //   // socket.emit('countUpdated', count);
-  //   io.emit('countUpdated', count);
-  // });
+  socket.on('sendLocation', (locationData) => {
+    io.emit(
+      'sendMessage',
+      `https://google.com/maps?q=${locationData.lat},${locationData.lon}`
+    );
+  });
 });
 
 server.listen(port, () => {
