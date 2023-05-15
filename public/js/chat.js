@@ -10,6 +10,11 @@ const $messages = document.querySelector('#messages');
 const messageTemplate = document.querySelector('#message-template').innerHTML;
 const locationTemplate = document.querySelector('#location-template').innerHTML;
 
+//Options
+const { username, room } = Qs.parse(location.search, {
+  ignoreQueryPrefix: true,
+});
+
 //GeoLocation Elements
 const $geolocationButton = document.querySelector('#send-location');
 
@@ -47,10 +52,15 @@ $messageFormButton.addEventListener('click', (event) => {
 
   if ($messageFormValue.value) {
     socket.emit('sendMessage', $messageFormValue.value, () => {
+      $messageFormValue.setAttribute('placeholder', 'Enter A Message');
       $messageFormButton.removeAttribute('disabled');
     });
     $messageFormValue.value = '';
     $messageFormValue.focus();
+  } else {
+    $messageFormValue.setAttribute('placeholder', 'You Must Enter A Message');
+    $messageFormValue.focus();
+    $messageFormButton.removeAttribute('disabled');
   }
 });
 
@@ -73,6 +83,8 @@ $geolocationButton.addEventListener('click', (event) => {
     });
   });
 });
+
+socket.emit('join', { username, room });
 
 // Saved For Reference
 // socket.on('countUpdated', (count) => {
