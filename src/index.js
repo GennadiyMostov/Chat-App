@@ -33,17 +33,6 @@ app.get('', (req, res) => {
 io.on('connection', (socket) => {
   // socket.emit('connect/disconnect', generateMessage('Welcome!'));
 
-  socket.on('disconnect', () => {
-    const user = removeUser(socket.id);
-
-    if (user) {
-      io.to(user.room).emit(
-        'sendMessage',
-        generateMessage('System', `${user.username} has left the chat`)
-      );
-    }
-  });
-
   socket.on('join', ({ username, room }, callback) => {
     const { error, user } = addUser({ id: socket.id, username, room });
     if (error) {
@@ -58,16 +47,35 @@ io.on('connection', (socket) => {
         'sendMessage',
         generateMessage('System', `${user.username} has joined the chat`)
       );
+    io.to(user.room).emit('roomData', {
+      room: user.room,
+      users: getUsersInRoom(user.room),
+    });
 
     callback();
   });
 
-  socket.on('sendMessage', (msg, callback) => {
-    const filter = new Filter();
+  socket.on('disconnect', () => {
+    const user = removeUser(socket.id);
 
-    if (filter.isProfane(msg)) {
-      return callback('System: Dont Be Fuggin Cussing In The Chat');
+    if (user) {
+      io.to(user.room).emit(
+        'sendMessage',
+        generateMessage('System', `${user.username} has left the chat`)
+      );
+      io.to(user.room).emit('roomData', {
+        room: user.room,
+        users: getUsersInRoom(user.room),
+      });
     }
+  });
+
+  socket.on('sendMessage', (msg, callback) => {
+    // const filter = new Filter();
+
+    // if (filter.isProfane(msg)) {
+    //   return callback('System: Dont Be Fuggin Cussing In The Chat');
+    // }
 
     const user = getUser(socket.id);
 
