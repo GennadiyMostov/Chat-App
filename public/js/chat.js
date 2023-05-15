@@ -1,40 +1,78 @@
 let socket = io();
 
+//Elements
+const $messageForm = document.querySelector('#form');
+const $messageFormButton = document.querySelector('#send');
+let $messageFormValue = document.querySelector('#message');
+const $messages = document.querySelector('#messages');
+
+//Templates
+const messageTemplate = document.querySelector('#message-template').innerHTML;
+const locationTemplate = document.querySelector('#location-template').innerHTML;
+
+//GeoLocation Elements
+const $geolocationButton = document.querySelector('#send-location');
+
+//io
 socket.on('connect/disconnect', (welcome) => {
-  console.log(welcome);
+  const welcomeMessage = Mustache.render(messageTemplate, {
+    message: welcome.text,
+  });
+  $messages.insertAdjacentHTML('beforeend', welcomeMessage);
 });
+
 socket.on('sendMessage', (message) => {
-  console.log(message);
+  // console.log(message);
+  const html = Mustache.render(messageTemplate, {
+    message: message.text,
+    createdAt: moment(message.createdAt).format('h:mm a'),
+  });
+  $messages.insertAdjacentHTML('beforeend', html);
 });
 
-const userMessage = document.querySelector('#send');
-let messageValue = document.querySelector('#message');
+socket.on('locationMessage', (location) => {
+  // console.log(location);
+  const locationData = Mustache.render(locationTemplate, {
+    location: location.url,
+    createdAt: moment(location.createdAt).format('h:mm a'),
+  });
+  $messages.insertAdjacentHTML('beforeend', locationData);
+});
 
-userMessage.addEventListener('click', (event) => {
+//eventHandler and listeners
+$messageFormButton.addEventListener('click', (event) => {
   event.preventDefault();
 
-  if (messageValue.value) {
-    socket.emit('sendMessage', messageValue.value);
-    messageValue.value = '';
+  $messageFormButton.setAttribute('disabled', 'disabled');
+
+  if ($messageFormValue.value) {
+    socket.emit('sendMessage', $messageFormValue.value, () => {
+      $messageFormButton.removeAttribute('disabled');
+    });
+    $messageFormValue.value = '';
+    $messageFormValue.focus();
   }
 });
 
-const geolocation = document
-  .querySelector('#send-location')
-  .addEventListener('click', (event) => {
-    if (!navigator.geolocation) {
-      return alert('Geolocation Not Supported By Your Browser');
-    }
+$geolocationButton.addEventListener('click', (event) => {
+  if (!navigator.geolocation) {
+    return alert('Geolocation Not Supported By Your Browser');
+  }
 
-    navigator.geolocation.getCurrentPosition((position) => {
-      const locationData = {
-        lat: position.coords.latitude,
-        lon: position.coords.longitude,
-      };
+  $geolocationButton.setAttribute('disabled', 'disabled');
 
-      socket.emit('sendLocation', locationData);
+  navigator.geolocation.getCurrentPosition((position) => {
+    const locationData = {
+      lat: position.coords.latitude,
+      lon: position.coords.longitude,
+    };
+
+    socket.emit('sendLocation', locationData, () => {
+      console.log('Location Shared!');
+      $geolocationButton.removeAttribute('disabled');
     });
   });
+});
 
 // Saved For Reference
 // socket.on('countUpdated', (count) => {
