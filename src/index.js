@@ -9,6 +9,13 @@ const io = new Server(server);
 const Filter = require('bad-words');
 
 const {
+  addUser,
+  removeUser,
+  getUser,
+  getUsersInRoom,
+} = require('./utils/users');
+
+const {
   generateMessage,
   generateLocationMessage,
 } = require('./utils/messages');
@@ -24,16 +31,36 @@ app.get('', (req, res) => {
 
 //io
 io.on('connection', (socket) => {
-  socket.emit('connect/disconnect', generateMessage('Welcome!'));
+  // socket.emit('connect/disconnect', generateMessage('Welcome!'));
 
   socket.on('disconnect', () => {
-    io.emit('connect/disconnect', generateMessage('A User Has Left The Chat'));
+    const user = removeUser(socket.id);
+
+    if (user) {
+      io.to(user.room).emit(
+        'sendMessage',
+        generateMessage('System', `${user.username} has left the chat`)
+      );
+    }
   });
 
-  socket.broadcast.emit(
-    'connect/disconnect',
-    generateMessage('A New User Has Joined The Chat')
-  );
+  socket.on('join', ({ username, room }, callback) => {
+    const { error, user } = addUser({ id: socket.id, username, room });
+    if (error) {
+      return callback(error);
+    }
+
+    socket.join(user.room);
+
+    socket.broadcast
+      .to(user.room)
+      .emit(
+        'sendMessage',
+        generateMessage('System', `${user.username} has joined the chat`)
+      );
+
+    callback();
+  });
 
   socket.on('sendMessage', (msg, callback) => {
     const filter = new Filter();
@@ -42,12 +69,20 @@ io.on('connection', (socket) => {
       return callback('System: Dont Be Fuggin Cussing In The Chat');
     }
 
-    io.emit('sendMessage', generateMessage(msg));
+    const user = getUser(socket.id);
+
+    io.to(user.room).emit('sendMessage', generateMessage(user.username, msg));
     callback('Delivered');
+
+    callback();
   });
 
   socket.on('sendLocation', (locationData, callback) => {
-    io.emit('locationMessage', generateLocationMessage(locationData));
+    const user = getUser(socket.id);
+    io.to(user.room).emit(
+      'locationMessage',
+      generateLocationMessage(user.username, locationData)
+    );
     callback();
   });
 });

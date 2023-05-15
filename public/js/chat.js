@@ -19,16 +19,11 @@ const { username, room } = Qs.parse(location.search, {
 const $geolocationButton = document.querySelector('#send-location');
 
 //io
-socket.on('connect/disconnect', (welcome) => {
-  const welcomeMessage = Mustache.render(messageTemplate, {
-    message: welcome.text,
-  });
-  $messages.insertAdjacentHTML('beforeend', welcomeMessage);
-});
 
 socket.on('sendMessage', (message) => {
   // console.log(message);
   const html = Mustache.render(messageTemplate, {
+    username: message.username,
     message: message.text,
     createdAt: moment(message.createdAt).format('h:mm a'),
   });
@@ -38,6 +33,7 @@ socket.on('sendMessage', (message) => {
 socket.on('locationMessage', (location) => {
   // console.log(location);
   const locationData = Mustache.render(locationTemplate, {
+    username: location.username,
     location: location.url,
     createdAt: moment(location.createdAt).format('h:mm a'),
   });
@@ -84,7 +80,12 @@ $geolocationButton.addEventListener('click', (event) => {
   });
 });
 
-socket.emit('join', { username, room });
+socket.emit('join', { username, room }, (error) => {
+  if (error) {
+    alert(error);
+    location.href = '/';
+  }
+});
 
 // Saved For Reference
 // socket.on('countUpdated', (count) => {
