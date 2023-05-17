@@ -45,12 +45,6 @@ const removeUser = (id) => {
   }
 };
 
-addUser({
-  id: 22,
-  username: 'Skeeter',
-  room: 'Dookie',
-});
-
 const getUser = (id) => {
   return users.find((user) => {
     return user.id === id;
